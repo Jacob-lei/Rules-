@@ -1,0 +1,101 @@
+# 两步路户外助手去广告 · Egern 模块（优化版）
+# 优化点：
+# 1. 原来 4 条重复的 map_local 合并为 1 条 url_rewrite，用 Egern 原生的 reject-dict 直接返回 {}，
+#    不用每条重复写 headers/body，规则更短、更好维护。
+# 2. 补了公开去广告规则里同属 helper.2bulu.com 的开屏/弹窗类接口（预览里没有，见下方“新增”注释），
+#    包括开屏 getSplash、弹窗 getPopInfo 等，更贴合“移除开屏广告、弹窗广告”的说明。
+# 3. 加了一条不需要 MITM 的域名拦截：admobile.top（第三方广告域）。
+# 如果新增的接口导致某个功能异常，删掉“新增”那一行即可，预览原有的 4 条不受影响。
+# 4. 2026-11-05 更新：按用户截图新增 advert/getAdInfo（22:08 出现 3 次，每次下行 314 字节），
+#    截图里的 GisService/api/geoTools/getAddress 是地理编码接口，不要拦截，已排除在外。
+# 5. 2026-11-05 22:17-22:18 更新：新增 v9/advert/getUniversalAd（通用广告，下行 2 KB，最可能是广告本体）
+#    和 getFreeAdDuration（免广告时长查询，下行 311 字节）。后者要特别小心：按名字它查的是剩余
+#    免广告时长，返回空 JSON 可能被当成 0 时长，反而让广告回来；先单独成行，试出问题先删它那一行。
+#    两张截图里其他含“ad”的都是误命中：newLeader（Leader）、downloadSportRecordList（download）、
+#    checkRoadNetUpdate（Road）、checkUpdateByWhiteList（Update）、getAddress（Address），均未拦截。
+# 6. 2026-11-06 18:55 更新：广告又出来了，但旧规则没失效——截图里 getAdInfo、getUniversalAd、
+#    getFreeAdDuration 下行都只剩 67 字节（原来 314 字节 / 2 KB / 311 字节），带修改标记，说明已拦截。
+#    新冒出来的是 advert/getAllAdInfo（312 字节，未拦截）和 adConfig/get（广告配置，721 字节，未拦截），
+#    这两个是本次新增的重点。其他仍是误命中：api.weibo.com/oauth2/getaid.json 是微博登录 SDK，
+#    getAddress、newLeader、downloadSportRecordList、checkRoadNetUpdate 等均未拦截。
+# 7. 2026-11-06 19:01-19:02 更新：上一次加的 adConfig/get、getAllAdInfo 已经生效（截图里下行都只剩 67 字节，
+#    带修改标记），但广告还在，原因是冒出一个第三方广告域名 adx.guangshiting.top:443（TLS 直连，19:01 出现 2 次，
+#    各下行 4 KB），不在 helper.2bulu.com 下面，MITM 规则碰不到它。这次按域名直接 REJECT，不用 MITM，
+#    和 admobile.top 同一类规则。其他仍是误命中：downloadSportRecordList、getRoadNetLicense（Road）、
+#    getAppSkin、getMapSource 等均未拦截。
+# 8. 2026-11-07 19:28-19:29 更新：广告又出来了（开屏“今日推荐”，千问广告），旧规则没失效——
+#    saveSplashFrequencyStatistics 下行只剩 34 字节，带修改标记，说明已拦截。
+#    新冒出来一串第三方广告域，全是 TLS 直连，不在 helper.2bulu.com 下面，MITM 规则碰不到，
+#    这次一起按域名 REJECT（和 guangshiting.top 同一类规则）：
+#    adx-tracker.zhitouads.com（/ad/tracking2，广告追踪，146 字节）、in.vipliangmei.com（/imp，曝光统计，145 字节）、
+#    adx.roiplusad.com:443（广告交易，5 KB）、adtrack.qianwen.com:443（千问广告追踪，5 KB）、
+#    tr.medproad.com:443（5 KB）、t.funlinkads.com:443（6 KB）。
+#    注意 adtrack.qianwen.com 只拦这一个子域名，别扩大到 qianwen.com（那是千问 AI 本身）。
+#    截图最下面还有一条 TLS 记录被挡住了（下行 12 KB，域名看不清），如果拦完广告还在，把那条截给我。
+# 9. 2026-11-07 19:31 更新：用户问“怎么可以阻止每天新出得广告”。
+#    两步路自家接口这边其实可以一劳永逸：过去三天新冒出来的全在 advert/ 和 adConfig/ 这两个
+#    命名空间下面（getAdInfo → getUniversalAd → getAllAdInfo，adConfig/get），所以把原来
+#    逐个点名的两条规则改成通配 advert/.* 和 adConfig/.*，以后这两个目录下再出新接口，
+#    不用等手动加规则也会被拦。getAddress、newLeader 这类名字里带 ad 的正常接口不在这两个
+#    目录下，不受影响。第三方广告域名每天轮换是另一回事，通配拦不住域名，靠 AdGuard DNS
+#    那层自己更新的名单去拦；这两层互不替代。
+name: "两步路户外助手去广告"
+description: "移除开屏广告、弹窗广告，精简我的页面。"
+author: "可莉"
+homepage: "https://hub.kelee.one"
+open_url: "https://apps.apple.com/app/id646277024"
+icon: "https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/2bulu.png"
+
+rules:
+  # 第三方广告域：不需要 MITM 即可拦截
+  - domain_suffix:
+      match: "admobile.top"
+      policy: REJECT
+  # 2026-11-06 19:01 截图新增：第三方广告交易域名 adx.guangshiting.top:443，不用 MITM，直接拦截
+  - domain_suffix:
+      match: "guangshiting.top"
+      policy: REJECT
+  # 2026-11-07 19:28 截图新增：第三方广告域一批，全是 TLS 直连，MITM 碰不到，直接拦截
+  - domain_suffix:
+      match: "zhitouads.com"
+      policy: REJECT
+  - domain_suffix:
+      match: "vipliangmei.com"
+      policy: REJECT
+  - domain_suffix:
+      match: "roiplusad.com"
+      policy: REJECT
+  # 只拦 adtrack.qianwen.com 这个子域名，别扩大到 qianwen.com
+  - domain_suffix:
+      match: "adtrack.qianwen.com"
+      policy: REJECT
+  - domain_suffix:
+      match: "medproad.com"
+      policy: REJECT
+  - domain_suffix:
+      match: "funlinkads.com"
+      policy: REJECT
+
+url_rewrites:
+  # 预览原有的 4 条：入口配置、搜索热词、我的页推广模块、专题推广数据
+  - match: '(?i)^https://helper\.2bulu\.com/(getAppEntranceConfig|search/searchHotKeyList|promote/getAppUserModule|proSpecial/allData)\?'
+    location: "http://reject-dict/"
+  # 新增：开屏、弹窗及同类推广接口（不在预览截图里，来自公开去广告规则合集）
+  - match: '(?i)^https://helper\.2bulu\.com/(getSplash|getPopInfo|saveSplashFrequencyStatistics|promote/list|greenPea/queryTasks|outing/reqFoundNewList|outing/reqIndex)'
+    location: "http://reject-dict/"
+  # 2026-11-05 截图新增：广告信息接口（22:08 连续出现 3 次）+ 通用广告接口（22:17，下行 2 KB）
+  # 2026-11-06 18:55 再新增：getAllAdInfo（全部广告信息，312 字节）
+  # 2026-11-07 19:31 改为通配：advert/ 目录下以后再出新接口也不用逐个加规则
+  - match: '(?i)^https://helper\.2bulu\.com/(v9/)?advert/.*\?'
+    location: "http://reject-dict/"
+  # 2026-11-06 18:55 截图新增：广告配置接口（721 字节，可能是广告总开关）
+  # 2026-11-07 19:31 改为通配：adConfig/ 目录同理
+  - match: '(?i)^https://helper\.2bulu\.com/adConfig/.*\?'
+    location: "http://reject-dict/"
+  # 2026-11-05 22:17 截图新增，试验性：免广告时长查询。见文件头注释 5，异常时先删这一行。
+  - match: '(?i)^https://helper\.2bulu\.com/getFreeAdDuration\?'
+    location: "http://reject-dict/"
+
+mitm:
+  hostnames:
+    - "helper.2bulu.com"
