@@ -1,0 +1,23 @@
+# 倒班助手去开屏广告 · Egern 模块
+# 依据 2026-11-07 23:20 用户 Egern 日志（搜 "ad"）编写，开屏广告出现的同时段只有下面两个广告平台在拉取：
+# - adxvip.com（s.adxvip.com、cdn.adxvip.com，TLS，下行 7–31 KB）：广告交易平台
+# - ssp.adworker.top（sdk.ssp.adworker.top、monitor.ssp.adworker.top，TLS，下行 13–19 KB）：SSP 广告 SDK
+# 两个都是 TLS 加密的第三方广告域名，MITM 拦不到，用 domain_suffix 按域名直接 REJECT，不需要开 MITM。
+# 没拦的：
+# - app.aishuttler.com：倒班助手自己的业务接口，拦了 App 会打不开
+# - wcp.taobao.com、vista.divms.cn：日志里只有一次、无法确认是广告，先不动
+# - helper.2bulu.com/getAddressDetail：两步路的旧日志残留，"ad" 是 getAddress 里的子串误命中，与倒班助手无关
+# 如果导入启用后开屏还有广告，把开屏出现那一刻的最新日志截过来，按新冒出来的域名再补规则。
+name: "倒班助手去开屏广告"
+description: "拦截倒班助手开屏广告（adxvip / adworker 广告平台）"
+author: "多多"
+
+rules:
+  # 2026-11-07 23:20 日志：s.adxvip.com:443、cdn.adxvip.com:443
+  - domain_suffix:
+      match: "adxvip.com"
+      policy: REJECT
+  # 2026-11-07 23:20 日志：sdk.ssp.adworker.top:443、monitor.ssp.adworker.top:443
+  - domain_suffix:
+      match: "adworker.top"
+      policy: REJECT

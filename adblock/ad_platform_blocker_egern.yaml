@@ -9,6 +9,15 @@ icon: "https://raw.githubusercontent.com/luestr/IconResource/main/Website_icon/1
 dns: {}
 
 rules:
+  # 2026-11-07 倒班助手新增：开屏广告日志里新出现的第三方广告域名（TLS 直连，MITM 碰不到，按域名拦）
+  # 2026-11-07 23:20 开屏广告：s.adxvip.com、cdn.adxvip.com 广告交易平台
+  - domain_suffix:
+      match: "adxvip.com"
+      policy: "REJECT"
+  # 2026-11-07 23:20：sdk.ssp.adworker.top、monitor.ssp.adworker.top SSP 广告 SDK
+  - domain_suffix:
+      match: "adworker.top"
+      policy: "REJECT"
   # 2026-11-07 两步路新增：日志里新出现的第三方广告域名（TLS 直连，MITM 碰不到，按域名拦）
   # 2026-11-07 19:28 开屏千问广告：adx-tracker.zhitouads.com 广告追踪
   - domain_suffix:
