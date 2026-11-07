@@ -31,6 +31,9 @@ rules:
   - domain_suffix:
       match: "funlinkads.com"
       policy: REJECT
+  - domain_suffix:
+      match: "buluken.com"
+      policy: REJECT
 
 url_rewrites:
   - match: '(?i)^https://helper\.2bulu\.com/(getAppEntranceConfig|search/searchHotKeyList|promote/getAppUserModule|proSpecial/allData)\?'
