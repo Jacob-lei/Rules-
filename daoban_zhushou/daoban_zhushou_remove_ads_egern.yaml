@@ -13,3 +13,7 @@ rules:
   - domain_suffix:
       match: "adworker.top"
       policy: REJECT
+  # 2026-11-07 23:30 日志：vista.divms.cn:443，开屏同时下行 17 KB；真机验证：加上这条后开屏没了
+  - domain_suffix:
+      match: "divms.cn"
+      policy: REJECT
