@@ -1,0 +1,23 @@
+# 微信公众号去广告 · Egern 模块
+# 由 Loon 插件转换而来（原作者 RuCu6)
+name: "微信公众号去广告"
+description: "过滤微信公众号广告"
+author: "RuCu6"
+homepage: "https://hub.kelee.one"
+open_url: "https://apps.apple.com/app/id414478124"
+icon: "https://raw.githubusercontent.com/luestr/IconResource/main/App_icon/120px/Weixin.png"
+
+rules:
+  - domain_suffix:
+      match: "wxs.qq.com"
+      policy: REJECT
+
+url_rewrites:
+  - match: '(?i)^https://mp\.weixin\.qq\.com/mp/(cps_product_info|getappmsgad|jsmonitor|masonryfeed|relatedarticle)\?'
+    location: "http://reject-dict/"
+  - match: '(?i)^https://mp\.weixin\.qq\.com/mp/relatedsearchword'
+    location: "http://reject-dict/"
+
+mitm:
+  hostnames:
+    - "mp.weixin.qq.com"
