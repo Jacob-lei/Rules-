@@ -1,19 +1,4 @@
 // 京东比价 · Egern 原生版（慢慢买数据源）
-// 为什么换数据源：原来用的 w.so168.top 已经挂了，2026-11-06 实测它对任何商品
-// 都只返回 HTTP 200 空内容（用户两件商品 + 我这边两个商品都一样），没法再用。
-// 这一版改用慢慢买（manmanbuy）的历史价格接口，流程照 wf021325 的 jd_price.js（2025-07-10），
-// 改成 Egern 原生写法（export default async function(ctx)，ctx.http / ctx.storage / ctx.notify）。
-// 用法：
-//   1. 先关掉旧的“京东比价”和“京东比价（调试版）”模块，再导入配套的 jd_bijia_mmb_egern.yaml。
-//   2. 装“慢慢买”App，打开它，进“我的”页面，收到“参数已保存”通知才算抓到参数。
-//      参数只存在本机（ctx.storage），查询时只发给慢慢买接口，不含账号密码。
-//   3. 再打开京东商品详情页（没出表就点一下商品“详情”），顶部会出历史价格表。
-//   4. 参数失效时（表里提示）重做第 2 步。
-// 注意：慢慢买接口需要第 2 步抓到的参数才能查，没有参数时页面顶部会提示，而不是静默无表。
-// 配套模块：jd_bijia_mmb_egern.yaml
-//   - http_request：拦截慢慢买 App 的 /baoliao/center/menu 请求，抓请求体里的参数存本机
-//   - http_response：拦截 in.m.jd.com/product/graphext/数字.html，查慢慢买历史价并插表
-//   - MITM：in.m.jd.com、apapia-sqk-weblogic.manmanbuy.com
 
 const STORE_KEY = 'jd_bijia_mmb_params';
 const SECRET_KEY = '3E41D1331F5DDAFCD0A38FE2D52FF66F';
